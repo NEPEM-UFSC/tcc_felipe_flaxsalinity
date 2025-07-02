@@ -14,7 +14,6 @@ knitr::opts_chunk$set(cache = FALSE,
 
 # Pacotes
 
-
 ```{r warning=FALSE, message=FALSE}
 library(rio)
 library(pliman)
@@ -23,7 +22,10 @@ library(germinationmetrics)
 library(gganimate)
 library(emmeans)
 library(patchwork)
-# set_wd_here()
+library(metan)
+library(broom)
+
+set_wd_here()
 df <- 
   import("data/dados_linaza.xlsx") |> 
   mutate(gen = paste0("G", gen)) |> 
@@ -43,6 +45,7 @@ dftempo <-
 ```{r}
 
 
+  
 
 
 dfplot <- 
@@ -71,7 +74,7 @@ animate(anim, width = 12, height = 4, units = "in", res = 300)
 anim_save("figs/animation.gif")
 
 ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
-
+view(anim)
 ```
 
 
@@ -174,7 +177,6 @@ mod_res <-
 export(mod_res, "data/mod_res.xlsx")
 
 
-
 ```
 
 
@@ -233,9 +235,131 @@ plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response")
 ```
 
 
-
-# Section info
+# Correlação
 ```{r}
-sessionInfo()
+matcor <- 
+mod_res |> 
+  ungroup() |>  
+  drop_na() |>  
+  metan::corr_coef(a:cugerm, -ivg, -timson, - c, -t50germ, -meangermtime, -txtot10)
+
+plot(matcor)
+
+network_plot(matcor)
+```
+
+
+
+
+#AUC
+```{r}
+
+# modelo generalizado
+mod_auc <- aov(auc ~ gen * dosef + rep, data = dfanal)
+anova(mod_auc)
+med_auc_gen <- emmeans(mod_auc,~gen|dosef)
+
+
+plot(med_auc_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+# quando tem interação
+
+df_auc <- 
+  med_auc_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c("a", "a", "a", "b", "a", rep("a", 15)))
+
+tukey_auc <- 
+ggplot(df_auc, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1)
+
+# regressão
+reg_auc <- 
+df_auc %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
+
+plot_reg_auc <- 
+ggplot(df_auc, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point()
+  
+library(patchwork)
+tukey_auc + plot_reg_auc
+
+```
+
+
+
+#t50
+```{r}
+mod_t50 <- aov(t50germ ~ gen * dosef + rep, data = dfanal)
+med_t50_gen <- emmeans(mod_t50, ~gen)
+gen_t50 <- plot(med_t50_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+med_t50_gen <- emmeans(mod_t50, ~ dosef)
+dfreg_t50 <- data.frame(med_t50_gen) %>% mutate(dosef= as.numeric(dosef))
+reg_t50 <- lm(emmean ~dosef, data = dfreg_t50)
+summary(reg_t50)
+
+ggplot(med_t50_gen %>% as.data.frame(), aes(dosef, emmean)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+
+
+
+#massa verde
+```{r}
+
+mod_mv <- aov(massa_verde ~ gen * dosef + rep, data = dfanal)
+anova(mod_mv)
+med_mv_gen <- emmeans(mod_mv, ~gen|dosef)
+plot(med_mv_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+```
+
+
+
+#massa seca
+```{r}
+mod_ms <- aov(massa_seca ~ gen * dosef + rep, data = dfanal)
+anova(mod_ms)
+med_ms_gen <- emmeans(mod_ms, ~gen|dosef)
+as.data.frame(med_ms_gen)
+plot(med_ms_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+```
+
+
+
+#comprimento
+```{r}
+
+mod_cp <- aov(comp_plant ~ gen * dosef + rep, data = dfanal)
+anova(mod_cp)
+med_cp_gen <- emmeans(mod_cp, ~gen)
+plot(med_cp_gen, comparisons = TRUE, CIs = FALSE, type = "response")
+
+med_cp_gen <- emmeans(mod_cp, ~ dosef)
+
+plot(med_cp_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+
+```
+
+
 ```
 
