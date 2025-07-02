@@ -14,7 +14,6 @@ knitr::opts_chunk$set(cache = FALSE,
 
 # Pacotes
 
-
 ```{r warning=FALSE, message=FALSE}
 library(rio)
 library(pliman)
@@ -23,6 +22,7 @@ library(germinationmetrics)
 library(gganimate)
 library(emmeans)
 library(patchwork)
+library(metan)
 # set_wd_here()
 df <- 
   import("data/dados_linaza.xlsx") |> 
@@ -174,7 +174,6 @@ mod_res <-
 export(mod_res, "data/mod_res.xlsx")
 
 
-
 ```
 
 
@@ -232,6 +231,19 @@ plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response")
 
 ```
 
+
+# Correlação
+```{r}
+matcor <- 
+mod_res |> 
+  ungroup() |>  
+  drop_na() |>  
+  metan::corr_coef(a:cugerm, -ivg, -timson, - c, -t50germ, -meangermtime, -txtot10)
+
+plot(matcor)
+
+network_plot(matcor)
+```
 
 
 # Section info
