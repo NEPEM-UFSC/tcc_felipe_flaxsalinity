@@ -1,0 +1,96 @@
+---
+title: "01 ---"
+---
+
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(cache = FALSE,
+                      comment = "##",
+                      collapse = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+
+```
+
+
+# Pacotes
+
+
+```{r warning=FALSE, message=FALSE}
+library(rio)
+library(pliman)
+library(tidyverse)
+library(germinationmetrics)
+# set_wd_here()
+df <- import("data/dados_linaza.xlsx")
+
+
+```
+
+# Tempo
+```{r}
+
+dftempo <- 
+  df |> 
+  select(Genotipo:G7) |> 
+  pivot_longer(G1:G7) |> 
+  separate_wider_position(name, widths = c(1, dia = 1)) |> 
+  mutate(dia = as.numeric(dia))
+
+dfplot <- 
+  dftempo |> 
+  group_by(Genotipo, Dose, dia) |> 
+  summarise(germ = mean(value))
+
+ggplot(dfplot, aes(x = dia, y = germ)) +
+  geom_path(aes(color = factor(Genotipo))) +
+  facet_wrap(~Dose)
+
+```
+
+# Germspeed
+```{r}
+results <- 
+dftempo |> 
+  group_by(Genotipo, Dose, Repeticao) |> 
+  nest() |> 
+  mutate(
+    
+    #IVG E TIMSON MUITO PARECIDOS
+   # gspeed = map(data, function(x){
+    #  GermSpeed(x$value, x$dia)
+    #}),
+    TimsonsIndex = map(data, function(x){
+      TimsonsIndex(x$value, x$dia, total.seeds = 24, max = 7)
+    }),
+    MeanGermTime = map(data, function(x){
+      MeanGermTime(x$value, x$dia)
+    }),
+    GermSynchrony = map(data, function(x){
+      GermSynchrony(x$value, x$dia)
+    }),
+    
+    #CUGERM MUITO PARECIDO COM SINCRONICIDADE
+    #CUGerm = map(data, function(x){
+     # CUGerm(x$value, x$dia)
+    #})
+    
+    #DANDO ERRO NO T50 E NO GERMPERCENT
+  # t50 = map(data, function(x){
+   #   t50(x$value, x$dia)
+    # }),
+  
+  peakgermtime = map(data, function(x){
+    PeakGermTime(x$value, x$dia)
+  }),
+  
+
+  )
+
+```
+
+
+# Section info
+```{r}
+sessionInfo()
+```
+
