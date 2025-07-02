@@ -20,8 +20,21 @@ library(rio)
 library(pliman)
 library(tidyverse)
 library(germinationmetrics)
+library(gganimate)
+library(emmeans)
+library(patchwork)
 # set_wd_here()
-df <- import("data/dados_linaza.xlsx")
+df <- 
+  import("data/dados_linaza.xlsx") |> 
+  mutate(gen = paste0("G", gen)) |> 
+  mutate(cum = G7 < G6)
+
+dftempo <- 
+  df |> 
+  select(gen:G7) |>
+  pivot_longer(G1:G7, names_to = "dai", values_to = "germ") |> 
+  separate_wider_position(dai, widths = c(1, dia = 1)) |> 
+  mutate(dia = as.numeric(dia))
 
 
 ```
@@ -29,64 +42,196 @@ df <- import("data/dados_linaza.xlsx")
 # Tempo
 ```{r}
 
-dftempo <- 
-  df |> 
-  select(Genotipo:G7) |> 
-  pivot_longer(G1:G7) |> 
-  separate_wider_position(name, widths = c(1, dia = 1)) |> 
-  mutate(dia = as.numeric(dia))
+
+
 
 dfplot <- 
   dftempo |> 
-  group_by(Genotipo, Dose, dia) |> 
-  summarise(germ = mean(value))
+  group_by(gen, dose, dia) |> 
+  summarise(germ = mean(germ))
 
-ggplot(dfplot, aes(x = dia, y = germ)) +
-  geom_path(aes(color = factor(Genotipo))) +
-  facet_wrap(~Dose)
+p <- 
+  ggplot(dfplot, aes(x = dia, y = germ, color = gen)) +
+  geom_path() +
+  geom_point(size = 2.5) +
+  facet_wrap(~dose, ncol = 5) +
+  theme_bw(base_size = 14) +
+  labs(x = "Dias após a implantação",
+       y = "Número de sementes germinadas",
+       color = "") +
+  scale_x_continuous(breaks = 1:7) +
+  theme(panel.grid.minor.x = element_blank())
+
+anim <- 
+  p + 
+  transition_reveal(dia) +
+  ease_aes("exponential-in-out")
+
+animate(anim, width = 12, height = 4, units = "in", res = 300)
+anim_save("figs/animation.gif")
+
+ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
 
 ```
 
-# Germspeed
+
+
+# Modelagem da germinação
 ```{r}
-results <- 
-dftempo |> 
-  group_by(Genotipo, Dose, Repeticao) |> 
-  nest() |> 
-  mutate(
-    
-    #IVG E TIMSON MUITO PARECIDOS
-   # gspeed = map(data, function(x){
-    #  GermSpeed(x$value, x$dia)
-    #}),
-    TimsonsIndex = map(data, function(x){
-      TimsonsIndex(x$value, x$dia, total.seeds = 24, max = 7)
-    }),
-    MeanGermTime = map(data, function(x){
-      MeanGermTime(x$value, x$dia)
-    }),
-    GermSynchrony = map(data, function(x){
-      GermSynchrony(x$value, x$dia)
-    }),
-    
-    #CUGERM MUITO PARECIDO COM SINCRONICIDADE
-    #CUGerm = map(data, function(x){
-     # CUGerm(x$value, x$dia)
-    #})
-    
-    #DANDO ERRO NO T50 E NO GERMPERCENT
-  # t50 = map(data, function(x){
-   #   t50(x$value, x$dia)
-    # }),
-  
-  peakgermtime = map(data, function(x){
-    PeakGermTime(x$value, x$dia)
-  }),
-  
+# Dose 0
+dfmod <- 
+  dftempo |> 
+  filter(dose == 0, gen == "G51", rep == 1)
 
-  )
+
+germanal <- function(time, germ){
+  gof <- function(mod){
+    modt <- mod$model
+    data.frame(
+      aic = AIC(modt),
+      rmse = sqrt(mean(residuals(modt)^2)),
+      mae = mean(abs(residuals(modt)))
+    )
+  }
+  if(all(germ  == 0)){
+    pars <- 
+      data.frame(
+        a = NA,
+        b = NA,
+        c = NA,
+        dlag50 = NA,
+        t50 = NA,
+        txtot10 = NA,
+        txtot70 = NA,
+        txger10 = NA,
+        txger70 = NA,
+        tmgr = NA,
+        mgt = NA,
+        auc = NA,
+        ivg = NA,
+        timson = NA,
+        meangermtime = NA,
+        sync = NA,
+        cugerm = NA,
+        tt50 = NA
+      )
+    cbind(pars, data.frame(aic= NA, rmse = NA, mae = NA))
+  } else{
+    # modelo
+    mod <- 
+      FourPHFfit(
+        germ,
+        time,
+        total.seeds = 24,
+        partial = FALSE,
+        fix.y0 = TRUE,
+        fix.a = TRUE,
+        tmax = 7,
+        xp = c(10, 70),
+        umin = 10,
+        umax = 75,
+        tries = 3
+      )
+    pars <- 
+      data.frame(
+        a = mod$a,
+        b = mod$b,
+        c = mod$c,
+        dlag50 = mod$Dlag50,
+        t50 = mod$t50.total,
+        t50germ = mod$t50.Germinated,
+        txtot10 = mod$txp.total[[1]],
+        txtot70 = mod$txp.total[[2]],
+        txger10 = mod$txp.Germinated[[1]],
+        txger70 = mod$txp.Germinated[[2]],
+        tmgr = mod$TMGR,
+        mgt = mod$MGT,
+        auc = mod$AUC,
+        ivg = GermSpeed(germ, time),
+        timson = TimsonsIndex(germ, time, total.seeds = 24, max = 7),
+        meangermtime = MeanGermTime(germ, time),
+        sync = GermSynchrony(germ, time),
+        cugerm = CUGerm(germ, time),
+        tt50 = t50(germ, time)
+        
+      )
+    gof <- gof(mod)
+    cbind(pars, gof)
+  }
+}
+
+
+# mapear as unidades experimentais
+mod_res <- 
+  dftempo |> 
+  group_by(gen, dose, rep) |> 
+  nest() |> 
+  mutate(res = map(data, function(x){
+    germanal(x$dia, x$germ)
+  })) |> 
+  unnest(cols = res)
+
+export(mod_res, "data/mod_res.xlsx")
+
+
 
 ```
+
+
+
+# Análises
+## Dados
+
+```{r}
+dfanal <- 
+  left_join(mod_res, df) |> 
+  mutate(total = 24,
+         germperc = a / 100,
+         dosef = as.factor(dose),
+         rep = as.factor(rep)) |> 
+  filter(dose != "200")
+
+```
+
+
+## ANOVAS
+### Germinação final
+```{r}
+ggplot(dfanal, aes(gen, a, fill = gen)) + 
+  geom_boxplot() +
+  facet_wrap(~dose, ncol = 5)
+
+# modelo generalizado
+modgen <- glm(cbind(G7, total-G7) ~ gen * dosef + rep,
+              family = binomial,
+              data = dfanal)
+modmeans_g <- emmeans(modgen, ~gen | dosef)
+
+# gen <- 
+plot(modmeans_g, comparisons = TRUE, CIs = FALSE, type = "response") +
+  xlim(c(0, 1)) +
+  theme_bw()
+
+
+```
+
+
+### b
+```{r}
+# modelo generalizado
+mod_b <- aov(b ~ gen * dosef + rep, data = dfanal)
+anova(mod_b)
+med_b_gen <- emmeans(mod_b, ~gen)
+plot(med_b_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+med_b_dose <- emmeans(mod_b, ~ dosef)
+
+plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+
+
+```
+
 
 
 # Section info
