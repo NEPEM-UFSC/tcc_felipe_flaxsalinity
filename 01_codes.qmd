@@ -23,9 +23,13 @@ library(gganimate)
 library(emmeans)
 library(patchwork)
 library(metan)
+<<<<<<< HEAD
 library(broom)
 
 set_wd_here()
+=======
+# set_wd_here()
+>>>>>>> ef12d0c21ba98f8f551a0579ce6f3d4db79b928e
 df <- 
   import("data/dados_linaza.xlsx") |> 
   mutate(gen = paste0("G", gen)) |> 
@@ -236,6 +240,23 @@ plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response")
 
 
 # Correlação
+<<<<<<< HEAD
+=======
+```{r}
+matcor <- 
+mod_res |> 
+  ungroup() |>  
+  drop_na() |>  
+  metan::corr_coef(a:cugerm, -ivg, -timson, - c, -t50germ, -meangermtime, -txtot10)
+
+plot(matcor)
+
+network_plot(matcor)
+```
+
+
+# Section info
+>>>>>>> ef12d0c21ba98f8f551a0579ce6f3d4db79b928e
 ```{r}
 matcor <- 
 mod_res |> 
