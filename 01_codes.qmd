@@ -23,13 +23,10 @@ library(gganimate)
 library(emmeans)
 library(patchwork)
 library(metan)
-<<<<<<< HEAD
 library(broom)
 
 set_wd_here()
-=======
 # set_wd_here()
->>>>>>> ef12d0c21ba98f8f551a0579ce6f3d4db79b928e
 df <- 
   import("data/dados_linaza.xlsx") |> 
   mutate(gen = paste0("G", gen)) |> 
@@ -47,10 +44,6 @@ dftempo <-
 
 # Tempo
 ```{r}
-
-
-  
-
 
 dfplot <- 
   dftempo |> 
@@ -75,9 +68,9 @@ anim <-
   ease_aes("exponential-in-out")
 
 animate(anim, width = 12, height = 4, units = "in", res = 300)
-anim_save("figs/animation.gif")
+#anim_save("figs/animation.gif")
 
-ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
+#ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
 view(anim)
 ```
 
@@ -227,12 +220,56 @@ plot(modmeans_g, comparisons = TRUE, CIs = FALSE, type = "response") +
 # modelo generalizado
 mod_b <- aov(b ~ gen * dosef + rep, data = dfanal)
 anova(mod_b)
-med_b_gen <- emmeans(mod_b, ~gen)
+med_b_gen <- emmeans(mod_b, ~gen|dosef)
 plot(med_b_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
 
 med_b_dose <- emmeans(mod_b, ~ dosef)
 
 plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+# quando tem interação
+
+df_b <- 
+  med_b_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c("a", "a", "a", "a", "b","a", "a", "a", "a", "b", "a", "a", "a", "b", "b", "a", "a", "a", "a", "a" ))
+
+tukey_b<- 
+ggplot(df_b, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "B"
+  )
+
+# regressão
+reg_b <- 
+df_b %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
+
+plot_reg_b<- 
+ggplot(df_b, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "B"
+  )
+  
+library(patchwork)
+tukey_b + plot_reg_b
+
 
 
 
