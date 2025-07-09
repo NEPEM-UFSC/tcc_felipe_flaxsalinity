@@ -325,7 +325,7 @@ plot(med_auc_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 df_auc <- 
   med_auc_gen %>% 
   as.data.frame() %>% 
-  mutate(letra = c("a", "a", "a", "b", "a","a", "a", "a", "b", "a","a", "a", "a", "b", "a","a", "a", "a", "a", "a" ))
+  mutate(letra = c("a", "a", "a", "b", "a","ac", "ac", "a", "b", "c","a", "ab", "b", "c", "ab","a", "a", "a", "a", "a" ))
 
 tukey_auc <- 
 ggplot(df_auc, aes(dosef, emmean, fill = gen)) +
@@ -405,7 +405,7 @@ plot(med_mv_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 df_mv <- 
   med_mv_gen %>% 
   as.data.frame() %>% 
-  mutate(letra = c( "b", "b", "a", "a", "a", "b", "b", "ab", "ab", "a", "c", "c", "c", "b", "a","a", "a", "a", "a", "a"))
+  mutate(letra =c( "a", "a", "a", "b", "c", "a", "a", "b", "c", "ab", "ac", "b", "ab", "c", "ab","a", "a", "a", "a", "a"))
 
 tukey_mv <- 
 ggplot(df_mv, aes(dosef, emmean, fill = gen)) +
@@ -460,7 +460,7 @@ plot(med_ms_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 df_ms <- 
   med_ms_gen %>% 
   as.data.frame() %>% 
-  mutate(letra = c( "a", "a", "a", "a", "b","a", "a", "ab", "b", "b","a", "a", "a", "a", "b", "a", "a", "a", "a", "a" ))
+  mutate(letra = c( "a", "a", "a", "b", "a","ab", "a", "b", "c", "ab","a", "b", "b", "c", "d", "a", "a", "a", "a", "a" ))
 
 tukey_ms <- 
 ggplot(df_ms, aes(dosef, emmean, fill = gen)) +
