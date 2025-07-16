@@ -1,3 +1,9 @@
 .Rproj.user
+<<<<<<< HEAD
 
 /.quarto/
+=======
+.Rhistory
+.RData
+.Ruserdata
+>>>>>>> 12a7edf29cd231a95b97788194a8b94fbef3408f
