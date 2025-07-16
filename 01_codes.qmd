@@ -24,7 +24,7 @@ library(patchwork)
 library(metan)
 library(broom)
 library(scales)
-library(gifski)
+
 
 set_wd_here()
 df <- 
@@ -67,8 +67,8 @@ p <-
     limits = c(0, 1),
     labels = percent_format(accuracy = 1)
   )
-  
-  anim <- 
+
+anim <- 
   p + 
   transition_reveal(dia) +
   ease_aes("exponential-in-out")
@@ -181,8 +181,8 @@ dfcor <-
   select(-c(G1:G7), -aic, -rmse, -mae) |> 
   ungroup() |>  
   mutate(across(where(is.numeric), function(x){
-      x[is.infinite(x)] <- NA
-      x
+    x[is.infinite(x)] <- NA
+    x
   })) |> 
   filter(!is.na(a))
 
@@ -248,7 +248,7 @@ dfint_gern <- plot(modmeans_g, plotit = FALSE, type = "response" ) |> as.data.fr
 
 
 
- tukey_germ <- 
+tukey_germ <- 
   ggplot(dfint_gern, aes(dosef, the.emmean, fill = gen)) +
   geom_col(position = position_dodge(width = 0.9)) +
   geom_text(aes(label = letra),
@@ -291,7 +291,7 @@ plot_reg_germ <-
   )
 
 library(patchwork)
-tukey_germ + plot_reg_germ
+
 
 ```
 
@@ -321,10 +321,10 @@ tukey_b<-
   geom_text(aes(label = letra),
             position = position_dodge(width = 0.9),
             vjust = -1) +
-    theme_bw(base_size = 14) +
+  theme_bw(base_size = 14) +
   labs(
- x = "KCl Dose (mM)",
-y = "Germination Curve Steepness Index"
+    x = "KCl Dose (mM)",
+    y = "Germination Curve Steepness Index"
   )
 
 # regressão
@@ -344,14 +344,12 @@ plot_reg_b<-
   ggplot(df_b, aes(dosef, emmean, color = gen, group = gen)) +
   geom_smooth(method = "lm", se = FALSE) +
   geom_point() +
-    theme_bw(base_size = 14) +
+  theme_bw(base_size = 14) +
   labs(
-x = "KCl Dose (mM)",
-y = "Germination Curve Steepness Index"
+    x = "KCl Dose (mM)",
+    y = "Germination Curve Steepness Index"
   )
 
-library(patchwork)
-tukey_b + plot_reg_b
 
 
 
@@ -376,74 +374,49 @@ plot(med_auc_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 # quando tem interação
 
 df_auc <- 
-med_auc_gen %>% 
-as.data.frame() %>% 
-mutate(letra = c("a", "a", "a", "b", "a","ac", "ac", "a", "b", "c","a", "ab", "b", "c", "ab","a", "a", "a", "a", "a" ))
+  med_auc_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c("a", "a", "a", "b", "a","ac", "ac", "a", "b", "c","a", "ab", "b", "c", "ab","a", "a", "a", "a", "a" ))
 
 tukey_auc <- 
-ggplot(df_auc, aes(dosef, emmean, fill = gen)) +
-geom_col(position = position_dodge(width = 0.9)) +
-geom_text(aes(label = letra),
-position = position_dodge(width = 0.9),
-vjust = -1) +
+  ggplot(df_auc, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
   theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Area Under the Curve (AUC)"
-)
+  labs(
+    x = "KCl Dose (mM)",
+    y = "Area Under the Curve (AUC)"
+  )
 
 # regressão
 reg_auc <- 
-df_auc %>% 
-mutate(dosef = as.numeric(dosef)) %>% 
-group_by(gen) %>% 
-nest() %>% 
-mutate(reg = map(data, function(x){
-lm(emmean ~ dosef, data =x) %>% tidy()
-})) %>% 
-unnest(cols = reg) %>% 
-select(gen:estimate) %>% 
-pivot_wider(names_from = term, values_from = estimate)
+  df_auc %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
 
 plot_reg_auc <- 
-ggplot(df_auc, aes(dosef, emmean, color = gen, group = gen)) +
-geom_smooth(method = "lm", se = FALSE) +
-geom_point() +
+  ggplot(df_auc, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
   theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Area Under the Curve (AUC)"
-)
+  labs(
+    x = "KCl Dose (mM)",
+    y = "Area Under the Curve (AUC)"
+  )
 
-library(patchwork)
-tukey_auc + plot_reg_auc
+
 
 ```
 
-
-
-#t50
-```{r}
-mod_t50 <- aov(t50germ ~ gen * dosef + rep, data = dfanal)
-med_t50_gen <- emmeans(mod_t50, ~gen)
-gen_t50 <- plot(med_t50_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
-
-med_t50_gen <- emmeans(mod_t50, ~ dosef)
-dfreg_t50 <- data.frame(med_t50_gen) %>% mutate(dosef= as.numeric(dosef))
-reg_t50 <- lm(emmean ~dosef, data = dfreg_t50)
-summary(reg_t50)
-
-ggplot(med_t50_gen %>% as.data.frame(), aes(dosef, emmean)) +
-geom_point() +
-#geom_line() +
-geom_smooth(method = "lm") +
-theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Time to 50% Seed Germination (Days)" 
-)
-
-```
 
 
 
@@ -459,47 +432,46 @@ plot(med_mv_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 # quando tem interação
 
 df_mv <- 
-med_mv_gen %>% 
-as.data.frame() %>% 
-mutate(letra = c( "a", "a", "a", "b", "c", "a", "a", "b", "c", "ab", "ac", "b", "ab", "c", "ab","a", "a", "a", "a", "a"))
+  med_mv_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c( "a", "a", "a", "b", "c", "a", "a", "b", "c", "ab", "ac", "b", "ab", "c", "ab","a", "a", "a", "a", "a"))
 
 tukey_mv <- 
-ggplot(df_mv, aes(dosef, emmean, fill = gen)) +
-geom_col(position = position_dodge(width = 0.9)) +
-geom_text(aes(label = letra),
-position = position_dodge(width = 0.9),
-vjust = -1) +
-theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Fresh Mass (mg)"
-)
+  ggplot(df_mv, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  theme_bw(base_size = 14) +
+  labs(
+    x = "KCl Dose (mM)",
+    y = "Fresh Mass (mg)"
+  )
 
 # regressão
 reg_mv <- 
-df_mv %>% 
-mutate(dosef = as.numeric(dosef)) %>% 
-group_by(gen) %>% 
-nest() %>% 
-mutate(reg = map(data, function(x){
-lm(emmean ~ dosef, data =x) %>% tidy()
-})) %>% 
-unnest(cols = reg) %>% 
-select(gen:estimate) %>% 
-pivot_wider(names_from = term, values_from = estimate)
+  df_mv %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
 
 plot_reg_mv <- 
-ggplot(df_mv, aes(dosef, emmean, color = gen, group = gen)) +
-geom_smooth(method = "lm", se = FALSE) +
-geom_point() +
-theme_bw(base_size = 14) +
+  ggplot(df_mv, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  theme_bw(base_size = 14) +
   labs(
-x = "KCl Dose (mM)",
-y = "Fresh Mass (mg)"
-)
+    x = "KCl Dose (mM)",
+    y = "Fresh Mass (mg)"
+  )
 
-library(patchwork)
-tukey_mv + plot_reg_mv
+
 
 ```
 
@@ -516,48 +488,105 @@ plot(med_ms_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 # quando tem interação
 
 df_ms <- 
-med_ms_gen %>% 
-as.data.frame() %>% 
-mutate(letra = c( "a", "a", "a", "b", "a","ab", "a", "b", "c", "ab","a", "b", "b", "c", "d", "a", "a", "a", "a", "a" ))
+  med_ms_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c( "a", "a", "a", "b", "a","ab", "a", "b", "c", "ab","a", "b", "b", "c", "d", "a", "a", "a", "a", "a" ))
 
 tukey_ms <- 
-ggplot(df_ms, aes(dosef, emmean, fill = gen)) +
-geom_col(position = position_dodge(width = 0.9)) +
-geom_text(aes(label = letra),
-position = position_dodge(width = 0.9),
-vjust = -1) +
-theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Dry Mass (mg)"
-)
+  ggplot(df_ms, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  theme_bw(base_size = 14) +
+  labs(
+    # x = NULL,
+    y = "Dry Mass (mg)"
+  ) +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank())
 
 # regressão
 reg_ms <- 
-df_ms %>% 
-mutate(dosef = as.numeric(dosef)) %>% 
-group_by(gen) %>% 
-nest() %>% 
-mutate(reg = map(data, function(x){
-lm(emmean ~ dosef, data =x) %>% tidy()
-})) %>% 
-unnest(cols = reg) %>% 
-select(gen:estimate) %>% 
-pivot_wider(names_from = term, values_from = estimate)
+  df_ms %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
 
 plot_reg_ms <- 
-ggplot(df_ms, aes(dosef, emmean, color = gen, group = gen)) +
-geom_smooth(method = "lm", se = FALSE) +
-geom_point() +
-theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Dry Mass (mg)"
-)
+  ggplot(df_ms, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  theme_bw(base_size = 14) +
+  labs(
+    # x = NULL,
+    y = "Dry Mass (mg)"
+  ) +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank())
 
-library(patchwork)
-tukey_ms + plot_reg_ms
+plot_reg_ms / tukey_ms / plot_reg_mv
 
+
+```
+
+
+
+# Painel com interação
+```{r}
+(tukey_ms + plot_reg_ms) / (tukey_mv + plot_reg_mv) / (tukey_auc + plot_reg_auc) /
+  (tukey_b + plot_reg_b) / (tukey_germ + plot_reg_germ) + 
+  plot_annotation(tag_levels = "a") +
+  plot_layout(guides = "collect")
+
+ggsave("painel.jpg", width = 21, height = 29.7, units = "cm", dpi = 600)
+```
+
+
+
+
+
+#t50
+```{r}
+mod_t50 <- aov(t50germ ~ gen * dosef + rep, data = dfanal)
+anova(mod_t50)
+med_t50_gen <- emmeans(mod_t50, ~gen)
+gen_t50 <- plot(med_t50_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+pgen_t50 <- 
+med_t50_gen |> 
+  as.data.frame() |> 
+  mutate(letra = c("b", "b", "ab", "a", "b")) |> 
+  ggplot(aes(gen, emmean)) +
+  geom_col(fill = "salmon") +
+  geom_text(aes(label = letra), vjust = -1)
+
+
+
+# dose
+med_t50_reg <- emmeans(mod_t50, ~ dosef)
+dfreg_t50 <- data.frame(med_t50_reg) %>% mutate(dosef= as.numeric(as.character(dosef)))
+reg_t50 <- lm(emmean ~dosef, data = dfreg_t50)
+summary(reg_t50)
+
+
+preg_t50 <- 
+ggplot(dfreg_t50 , aes(dosef, emmean)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  theme_bw(base_size = 14) +
+  labs(
+    x = "KCl Dose (mM)",
+    y = "Time to 50% Seed Germination (Days)" 
+  )
+
+pgen_t50 + preg_t50
 ```
 
 
@@ -576,14 +605,14 @@ reg_cp <- lm(emmean ~dosef, data = dfreg_cp)
 summary(reg_cp)
 
 ggplot(med_cp_gen %>% as.data.frame(), aes(dosef, emmean)) +
-geom_point() +
-#geom_line() +
-geom_smooth(method = "lm") +
-theme_bw(base_size = 14) +
-labs(
-x = "KCl Dose (mM)",
-y = "Seedling length (mm)"
-)
+  geom_point() +
+  #geom_line() +
+  geom_smooth(method = "lm") +
+  theme_bw(base_size = 14) +
+  labs(
+    x = "KCl Dose (mM)",
+    y = "Seedling length (mm)"
+  )
 
 ```
 
