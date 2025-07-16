@@ -24,9 +24,9 @@ library(patchwork)
 library(metan)
 library(broom)
 library(scales)
+library(gifski)
 
 set_wd_here()
-# set_wd_here()
 df <- 
   import("data/dados_linaza.xlsx") |> 
   mutate(gen = paste0("G", gen))
@@ -58,8 +58,8 @@ p <-
   geom_point(size = 2.5) +
   facet_wrap(~dose, ncol = 5) +
   theme_bw(base_size = 14) +
-  labs(x = "Dias após a implantação",
-       y = "Percentual de sementes germinadas",
+  labs(x = "Days After Sowing",
+       y = "Percentage of Germinated Seeds",
        color = "") +
   scale_x_continuous(breaks = 1:7) +
   theme(panel.grid.minor.x = element_blank()) +
@@ -74,7 +74,6 @@ p <-
   ease_aes("exponential-in-out")
 
 animate(anim, width = 12, height = 4, units = "in", res = 300)
-# Instalar gifsky
 #anim_save("figs/animation.gif")
 
 #ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
@@ -244,21 +243,26 @@ modmeans_g <- emmeans(modgen, ~gen | dosef)
 
 plot(modmeans_g, comparisons = TRUE, CIs = FALSE)
 
-dfint_gern <- plot(modmeans_g, plotit = FALSE, type = "response" ) |> as.data.frame()
+dfint_gern <- plot(modmeans_g, plotit = FALSE, type = "response" ) |> as.data.frame() %>% 
+  mutate(letra = c("a", "a", "a", "b", "a","a", "a", "a", "b", "a", "a", "b", "b", "c", "b", "a", "b", "c", "ab", "c" ))
 
 
 
-# tukey_germ <- 
+ tukey_germ <- 
   ggplot(dfint_gern, aes(dosef, the.emmean, fill = gen)) +
   geom_col(position = position_dodge(width = 0.9)) +
-  # geom_text(aes(label = letra),
-  #           position = position_dodge(width = 0.9),
-  #           vjust = -1) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  theme_bw(base_size = 14) +
   labs(
-    x = "Dose de KCl (MM)",
-    y = "B"
+    x = "KCl Dose (mM)",
+    y = "Final Germination (%)"
+  ) +
+  scale_y_continuous(
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1)
   )
-
 # regressão
 reg_germ <- 
   dfint_gern %>% 
@@ -272,14 +276,22 @@ reg_germ <-
   select(gen:estimate) %>% 
   pivot_wider(names_from = term, values_from = estimate)
 
-plot_reg_b<- 
-  ggplot(dfint_gern, aes(dosef, the.emmean, color = gen, group = gen)) +
+plot_reg_germ <- 
+  ggplot(dfint_gern, aes(x = dosef, y = the.emmean, color = gen, group = gen)) +
   geom_smooth(method = "lm", se = FALSE) +
   geom_point() +
+  theme_bw(base_size = 14) +
   labs(
-    x = "Dose de KCl (MM)",
-    y = "B"
+    x = "KCl Dose (mM)",
+    y = "Final Germination (%)"
+  ) +
+  scale_y_continuous(
+    limits = c(0, 1),
+    labels = percent_format(accuracy = 1)
   )
+
+library(patchwork)
+tukey_germ + plot_reg_germ
 
 ```
 
@@ -301,7 +313,7 @@ plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response")
 df_b <- 
   med_b_gen %>% 
   as.data.frame() %>% 
-  mutate(letra = c("a", "a", "a", "a", "b","a", "a", "a", "a", "b", "a", "a", "a", "b", "b", "a", "a", "a", "a", "a" ))
+  mutate(letra = c("a", "a", "a", "b", "a","a", "a", "a", "b", "a", "a", "a", "a", "b", "a", "ac", "b", "a", "c", "ac" ))
 
 tukey_b<- 
   ggplot(df_b, aes(dosef, emmean, fill = gen)) +
@@ -311,8 +323,8 @@ tukey_b<-
             vjust = -1) +
     theme_bw(base_size = 14) +
   labs(
-    x = "Dose de KCl (MM)",
-    y = "B"
+ x = "KCl Dose (mM)",
+y = "Germination Curve Steepness Index"
   )
 
 # regressão
@@ -334,8 +346,8 @@ plot_reg_b<-
   geom_point() +
     theme_bw(base_size = 14) +
   labs(
-    x = "Dose de KCl (MM)",
-    y = "B"
+x = "KCl Dose (mM)",
+y = "Germination Curve Steepness Index"
   )
 
 library(patchwork)
@@ -374,8 +386,9 @@ geom_col(position = position_dodge(width = 0.9)) +
 geom_text(aes(label = letra),
 position = position_dodge(width = 0.9),
 vjust = -1) +
+  theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
+x = "KCl Dose (mM)",
 y = "Area Under the Curve (AUC)"
 )
 
@@ -396,8 +409,9 @@ plot_reg_auc <-
 ggplot(df_auc, aes(dosef, emmean, color = gen, group = gen)) +
 geom_smooth(method = "lm", se = FALSE) +
 geom_point() +
+  theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
+x = "KCl Dose (mM)",
 y = "Area Under the Curve (AUC)"
 )
 
@@ -423,9 +437,10 @@ ggplot(med_t50_gen %>% as.data.frame(), aes(dosef, emmean)) +
 geom_point() +
 #geom_line() +
 geom_smooth(method = "lm") +
+theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
-y = "Tempo para Germinação de 50% das Sementes (Dias)"
+x = "KCl Dose (mM)",
+y = "Time to 50% Seed Germination (Days)" 
 )
 
 ```
@@ -446,7 +461,7 @@ plot(med_mv_gen, comparisons = TRUE, CIs = FALSE, type = "response")
 df_mv <- 
 med_mv_gen %>% 
 as.data.frame() %>% 
-mutate(letra =c( "a", "a", "a", "b", "c", "a", "a", "b", "c", "ab", "ac", "b", "ab", "c", "ab","a", "a", "a", "a", "a"))
+mutate(letra = c( "a", "a", "a", "b", "c", "a", "a", "b", "c", "ab", "ac", "b", "ab", "c", "ab","a", "a", "a", "a", "a"))
 
 tukey_mv <- 
 ggplot(df_mv, aes(dosef, emmean, fill = gen)) +
@@ -454,9 +469,10 @@ geom_col(position = position_dodge(width = 0.9)) +
 geom_text(aes(label = letra),
 position = position_dodge(width = 0.9),
 vjust = -1) +
+theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
-y = "Peso de Massa Verde (Mg)"
+x = "KCl Dose (mM)",
+y = "Fresh Mass (mg)"
 )
 
 # regressão
@@ -476,9 +492,10 @@ plot_reg_mv <-
 ggplot(df_mv, aes(dosef, emmean, color = gen, group = gen)) +
 geom_smooth(method = "lm", se = FALSE) +
 geom_point() +
-labs(
-x = "Dose de KCl (MM)",
-y = "Peso de Massa Verde (Mg)"
+theme_bw(base_size = 14) +
+  labs(
+x = "KCl Dose (mM)",
+y = "Fresh Mass (mg)"
 )
 
 library(patchwork)
@@ -509,9 +526,10 @@ geom_col(position = position_dodge(width = 0.9)) +
 geom_text(aes(label = letra),
 position = position_dodge(width = 0.9),
 vjust = -1) +
+theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
-y = "Peso de Massa Seca (Mg)"
+x = "KCl Dose (mM)",
+y = "Dry Mass (mg)"
 )
 
 # regressão
@@ -531,9 +549,10 @@ plot_reg_ms <-
 ggplot(df_ms, aes(dosef, emmean, color = gen, group = gen)) +
 geom_smooth(method = "lm", se = FALSE) +
 geom_point() +
+theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
-y = "Peso de Massa Seca (Mg)"
+x = "KCl Dose (mM)",
+y = "Dry Mass (mg)"
 )
 
 library(patchwork)
@@ -560,9 +579,10 @@ ggplot(med_cp_gen %>% as.data.frame(), aes(dosef, emmean)) +
 geom_point() +
 #geom_line() +
 geom_smooth(method = "lm") +
+theme_bw(base_size = 14) +
 labs(
-x = "Dose de KCl (MM)",
-y = "Comprimento de Plântulas (mm)"
+x = "KCl Dose (mM)",
+y = "Seedling length (mm)"
 )
 
 ```
