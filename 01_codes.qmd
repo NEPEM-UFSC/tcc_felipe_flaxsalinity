@@ -23,6 +23,9 @@ library(gganimate)
 library(emmeans)
 library(patchwork)
 library(metan)
+library(broom)
+
+set_wd_here()
 # set_wd_here()
 df <- 
   import("data/dados_linaza.xlsx") |> 
@@ -41,9 +44,6 @@ dftempo <-
 
 # Tempo
 ```{r}
-
-
-
 
 dfplot <- 
   dftempo |> 
@@ -68,10 +68,10 @@ anim <-
   ease_aes("exponential-in-out")
 
 animate(anim, width = 12, height = 4, units = "in", res = 300)
-anim_save("figs/animation.gif")
+#anim_save("figs/animation.gif")
 
-ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
-
+#ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
+view(anim)
 ```
 
 
@@ -220,12 +220,56 @@ plot(modmeans_g, comparisons = TRUE, CIs = FALSE, type = "response") +
 # modelo generalizado
 mod_b <- aov(b ~ gen * dosef + rep, data = dfanal)
 anova(mod_b)
-med_b_gen <- emmeans(mod_b, ~gen)
+med_b_gen <- emmeans(mod_b, ~gen|dosef)
 plot(med_b_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
 
 med_b_dose <- emmeans(mod_b, ~ dosef)
 
 plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+# quando tem interação
+
+df_b <- 
+  med_b_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c("a", "a", "a", "a", "b","a", "a", "a", "a", "b", "a", "a", "a", "b", "b", "a", "a", "a", "a", "a" ))
+
+tukey_b<- 
+ggplot(df_b, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "B"
+  )
+
+# regressão
+reg_b <- 
+df_b %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
+
+plot_reg_b<- 
+ggplot(df_b, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "B"
+  )
+  
+library(patchwork)
+tukey_b + plot_reg_b
+
 
 
 
@@ -233,6 +277,8 @@ plot(med_b_dose, comparisons = TRUE, CIs = FALSE, type = "response")
 
 
 # Correlação
+<<<<<<< HEAD
+=======
 ```{r}
 matcor <- 
 mod_res |> 
@@ -247,7 +293,239 @@ network_plot(matcor)
 
 
 # Section info
+>>>>>>> ef12d0c21ba98f8f551a0579ce6f3d4db79b928e
 ```{r}
-sessionInfo()
+matcor <- 
+mod_res |> 
+  ungroup() |>  
+  drop_na() |>  
+  metan::corr_coef(a:cugerm, -ivg, -timson, - c, -t50germ, -meangermtime, -txtot10)
+
+plot(matcor)
+
+network_plot(matcor)
+```
+
+
+
+
+#AUC
+```{r}
+
+# modelo generalizado
+mod_auc <- aov(auc ~ gen * dosef + rep, data = dfanal)
+anova(mod_auc)
+med_auc_gen <- emmeans(mod_auc,~gen|dosef)
+
+
+plot(med_auc_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+# quando tem interação
+
+df_auc <- 
+  med_auc_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c("a", "a", "a", "b", "a","ac", "ac", "a", "b", "c","a", "ab", "b", "c", "ab","a", "a", "a", "a", "a" ))
+
+tukey_auc <- 
+ggplot(df_auc, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Area Under the Curve (AUC)"
+  )
+
+# regressão
+reg_auc <- 
+df_auc %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
+
+plot_reg_auc <- 
+ggplot(df_auc, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Area Under the Curve (AUC)"
+  )
+  
+library(patchwork)
+tukey_auc + plot_reg_auc
+
+```
+
+
+
+#t50
+```{r}
+mod_t50 <- aov(t50germ ~ gen * dosef + rep, data = dfanal)
+med_t50_gen <- emmeans(mod_t50, ~gen)
+gen_t50 <- plot(med_t50_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+med_t50_gen <- emmeans(mod_t50, ~ dosef)
+dfreg_t50 <- data.frame(med_t50_gen) %>% mutate(dosef= as.numeric(dosef))
+reg_t50 <- lm(emmean ~dosef, data = dfreg_t50)
+summary(reg_t50)
+
+ggplot(med_t50_gen %>% as.data.frame(), aes(dosef, emmean)) +
+  geom_point() +
+  #geom_line() +
+  geom_smooth(method = "lm") +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Tempo para Germinação de 50% das Sementes (Dias)"
+  )
+
+```
+
+
+
+
+#massa verde
+```{r}
+
+mod_mv <- aov(massa_verde ~ gen * dosef + rep, data = dfanal)
+anova(mod_mv)
+med_mv_gen <- emmeans(mod_mv, ~gen|dosef)
+plot(med_mv_gen, comparisons = TRUE, CIs = FALSE, type = "response")
+
+# quando tem interação
+
+df_mv <- 
+  med_mv_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra =c( "a", "a", "a", "b", "c", "a", "a", "b", "c", "ab", "ac", "b", "ab", "c", "ab","a", "a", "a", "a", "a"))
+
+tukey_mv <- 
+ggplot(df_mv, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Peso de Massa Verde (Mg)"
+  )
+
+# regressão
+reg_mv <- 
+df_mv %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
+
+plot_reg_mv <- 
+ggplot(df_mv, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Peso de Massa Verde (Mg)"
+  )
+  
+library(patchwork)
+tukey_mv + plot_reg_mv
+
+```
+
+
+
+#massa seca
+```{r}
+mod_ms <- aov(massa_seca ~ gen * dosef + rep, data = dfanal)
+anova(mod_ms)
+med_ms_gen <- emmeans(mod_ms, ~gen|dosef)
+as.data.frame(med_ms_gen)
+plot(med_ms_gen, comparisons = TRUE, CIs = FALSE, type = "response") 
+
+# quando tem interação
+
+df_ms <- 
+  med_ms_gen %>% 
+  as.data.frame() %>% 
+  mutate(letra = c( "a", "a", "a", "b", "a","ab", "a", "b", "c", "ab","a", "b", "b", "c", "d", "a", "a", "a", "a", "a" ))
+
+tukey_ms <- 
+ggplot(df_ms, aes(dosef, emmean, fill = gen)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = letra),
+            position = position_dodge(width = 0.9),
+            vjust = -1) +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Peso de Massa Seca (Mg)"
+  )
+
+# regressão
+reg_ms <- 
+df_ms %>% 
+  mutate(dosef = as.numeric(dosef)) %>% 
+  group_by(gen) %>% 
+  nest() %>% 
+  mutate(reg = map(data, function(x){
+    lm(emmean ~ dosef, data =x) %>% tidy()
+  })) %>% 
+  unnest(cols = reg) %>% 
+  select(gen:estimate) %>% 
+  pivot_wider(names_from = term, values_from = estimate)
+
+plot_reg_ms <- 
+ggplot(df_ms, aes(dosef, emmean, color = gen, group = gen)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Peso de Massa Seca (Mg)"
+  )
+  
+library(patchwork)
+tukey_ms + plot_reg_ms
+
+```
+
+
+
+#comprimento
+```{r}
+
+mod_cp <- aov(comp_plant ~ gen * dosef + rep, data = dfanal)
+anova(mod_cp)
+med_cp_gen <- emmeans(mod_cp, ~gen)
+gen_cp <- plot(med_cp_gen, comparisons = TRUE, CIs = FALSE, type = "response")
+
+med_cp_gen <- emmeans(mod_cp, ~ dosef)
+dfreg_cp <- data.frame(med_cp_gen) %>% mutate(dosef= as.numeric(dosef))
+reg_cp <- lm(emmean ~dosef, data = dfreg_cp)
+summary(reg_cp)
+
+ggplot(med_cp_gen %>% as.data.frame(), aes(dosef, emmean)) +
+  geom_point() +
+  #geom_line() +
+  geom_smooth(method = "lm") +
+  labs(
+    x = "Dose de KCl (MM)",
+    y = "Comprimento de Plântulas (mm)"
+  )
+
+```
+
+
 ```
 
