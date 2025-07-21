@@ -76,7 +76,7 @@ anim <-
 animate(anim, width = 12, height = 4, units = "in", res = 300)
 #anim_save("figs/animation.gif")
 
-#ggsave("figs/evolucao_tempo.jpg", width = 12, height = 4)
+ggsave("figs/evolucao_tempo.jpg", width =14, height=8)
 view(anim)
 ```
 
@@ -191,6 +191,7 @@ matcor <-
   metan::corr_coef(a:massa_seca)
 
 plot(matcor)
+ggsave("figs/cor.jpg", width =8, height=10)
 
 
 ```
@@ -199,15 +200,17 @@ plot(matcor)
 ## Trilha
 ```{r}
 
-a <- colindiag(dfcor, ivg, t50germ, a, b, tmgr, meangermtime)
+a <- colindiag(dfcor, auc, t50germ, a, b, tmgr, meangermtime)
 a
 
 path <- path_coeff(
   dfcor,
   resp = massa_seca, 
-  pred = c( ivg, t50germ, a, b, tmgr, meangermtime)
+  pred = c( auc, t50germ, a, b, tmgr, meangermtime)
 )
 plot(path)
+ggsave("figs/trilha.jpg", width =8, height=6)
+
 ```
 
 
